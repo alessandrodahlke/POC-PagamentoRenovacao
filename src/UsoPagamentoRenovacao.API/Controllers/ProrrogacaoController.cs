@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using UsoPagamentoRenovacao.Core.DomainServices.Interfaces.Handlers;
 using UsoPagamentoRenovacao.Core.Handlers.Commands;
 
 namespace UsoPagamentoRenovacao.API.Controllers
@@ -9,10 +8,10 @@ namespace UsoPagamentoRenovacao.API.Controllers
     public class ProrrogacaoController : ControllerBase
     {
         [HttpPost]
-        public async Task<IActionResult> Prorrogar(IRequestHandler<SolicitarProrrogacaoCommand> handler)
+        public async Task<IActionResult> Prorrogar([FromServices]IMediatorHandler mediatorHandler)
         {
 
-            await handler.Handle(new SolicitarProrrogacaoCommand());
+            await mediatorHandler.EnviarComando(new SolicitarProrrogacaoCommand());
 
             return Ok();
         }
@@ -29,7 +28,7 @@ namespace UsoPagamentoRenovacao.API.Controllers
             return Ok();
         }
 
-        [HttpGet("{codigoContrato:string}")]
+        [HttpGet("{codigoContrato}")]
         public IActionResult ObterPorContrato()
         {
             return Ok();

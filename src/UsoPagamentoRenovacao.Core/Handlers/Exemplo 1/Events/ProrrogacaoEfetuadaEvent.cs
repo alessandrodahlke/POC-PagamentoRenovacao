@@ -1,6 +1,8 @@
-﻿namespace UsoPagamentoRenovacao.Core.Handlers.Events
+﻿using UsoPagamentoRenovacao.Core.Handlers.Commands;
+
+namespace UsoPagamentoRenovacao.Core.Handlers.Events
 {
-    public class ProrrogacaoEfetuadaEvent
+    public class ProrrogacaoEfetuadaEvent : Event
     {
     }
 }

@@ -1,36 +1,36 @@
-﻿using UsoPagamentoRenovacao.Core.DomainModels.Models;
+﻿using MediatR;
+using UsoPagamentoRenovacao.Core.DomainModels.Models;
 using UsoPagamentoRenovacao.Core.DomainServices.Interfaces.Gateways;
-using UsoPagamentoRenovacao.Core.DomainServices.Interfaces.Handlers;
 using UsoPagamentoRenovacao.Core.DomainServices.Interfaces.Repositories;
 using UsoPagamentoRenovacao.Core.Handlers.Commands;
 using UsoPagamentoRenovacao.Core.Handlers.Events;
 
 namespace UsoPagamentoRenovacao.Core.Handlers
 {
-    public class ProrrogacaoHandler : IRequestHandler<SolicitarProrrogacaoCommand>,
-                                      IRequestHandler<ProrrogarContratoCommand>,
-                                      IRequestHandler<ProrrogacaoEfetuadaEvent>,
-                                      IRequestHandler<ProrrogacaoNaoEfetuadaEvent>
+    public class ProrrogacaoHandler : IRequestHandler<SolicitarProrrogacaoCommand, bool>,
+                                      IRequestHandler<ProrrogarContratoCommand, bool>,
+                                      INotificationHandler<ProrrogacaoEfetuadaEvent>,
+                                      INotificationHandler<ProrrogacaoNaoEfetuadaEvent>
 
     {
 
         private readonly IProrrogacaoRepository _prorrogacaoRepository;
         private readonly IContratosGateway _contratosGateway;
         private readonly IEventoRepository _eventoRepository;
-        private readonly IRequestHandler<SolicitarPagamentoCommand> _solicitarPagamentoHandler;
+        private readonly IMediatorHandler _mediatorHandler;
 
         public ProrrogacaoHandler(IProrrogacaoRepository prorrogacaoRepository, 
             IContratosGateway contratosGateway, 
             IEventoRepository eventoRepository, 
-            IRequestHandler<SolicitarPagamentoCommand> solicitarPagamentoHandler)
+            IMediatorHandler mediatorHandler)
         {
             _prorrogacaoRepository = prorrogacaoRepository;
             _contratosGateway = contratosGateway;
             _eventoRepository = eventoRepository;
-            _solicitarPagamentoHandler = solicitarPagamentoHandler;
+            _mediatorHandler = mediatorHandler;
         }
 
-        public async Task Handle(SolicitarProrrogacaoCommand message)
+        public async Task<bool> Handle(SolicitarProrrogacaoCommand message, CancellationToken cancellationToken)
         {
             //Gravar prorrogacao na tabela prorrogacoes
             await _prorrogacaoRepository.Adicionar(new Prorrogacao());
@@ -40,15 +40,16 @@ namespace UsoPagamentoRenovacao.Core.Handlers
             if (realizarPagamento)
             {
                 //Disparar comando para solicitar pagamento
-                await _solicitarPagamentoHandler.Handle(new SolicitarPagamentoCommand());
+                await _mediatorHandler.EnviarComando(new SolicitarPagamentoCommand());
             }
             else
             {
                 //Publicar comando na fila prorrogar-contrato (ProrrogarContratoCommand)
             }
+            return true;
         }
 
-        public async Task Handle(ProrrogarContratoCommand message)
+        public async Task<bool> Handle(ProrrogarContratoCommand message, CancellationToken cancellationToken)
         {
             //Solicitar prorrogacao ao AL.Contratos
             await _contratosGateway.ProrrogarContrato();
@@ -75,9 +76,10 @@ namespace UsoPagamentoRenovacao.Core.Handlers
 
                 //Publicar evento na fila contrato-nao-prorrogado
             }
+            return true;
         }
 
-        public async Task Handle(ProrrogacaoEfetuadaEvent message)
+        public async Task Handle(ProrrogacaoEfetuadaEvent message, CancellationToken cancellationToken)
         {
             //Atualizar prorrogacao na tabela prorrogacoes para  ProrrogacaoEfetuada
             await _prorrogacaoRepository.Atualizar(new Prorrogacao());
@@ -85,7 +87,7 @@ namespace UsoPagamentoRenovacao.Core.Handlers
             //Notificar cliente via Hermes
         }
 
-        public async Task Handle(ProrrogacaoNaoEfetuadaEvent message)
+        public async Task Handle(ProrrogacaoNaoEfetuadaEvent message, CancellationToken cancellationToken)
         {
             //Atualizar prorrogacao na tabela prorrogacoes para  ProrrogacaoNaoEfetuada
             await _prorrogacaoRepository.Atualizar(new Prorrogacao());

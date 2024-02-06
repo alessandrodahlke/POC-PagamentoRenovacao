@@ -1,6 +1,6 @@
 ﻿namespace UsoPagamentoRenovacao.Core.DomainServices.Interfaces.Handlers
 {
-    public interface IRequestHandler<TRequest>
+    public interface IRequestHandler<in TRequest>
     {
         Task Handle(TRequest request);
     }

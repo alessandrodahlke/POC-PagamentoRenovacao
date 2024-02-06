@@ -9,9 +9,11 @@
   <ItemGroup>
     <Folder Include="Cache\" />
     <Folder Include="Kafka\" />
-    <Folder Include="Gateways\" />
     <Folder Include="RabbitMq\" />
-    <Folder Include="Repositories\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UsoPagamentoRenovacao.Core\UsoPagamentoRenovacao.Core.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,6 @@
 ﻿namespace UsoPagamentoRenovacao.Core.Handlers.Commands
 {
-    public class SolicitarProrrogacaoCommand
+    public class SolicitarProrrogacaoCommand : Command
     {
 
     }

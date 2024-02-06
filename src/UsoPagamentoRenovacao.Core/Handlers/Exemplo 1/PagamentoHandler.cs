@@ -1,15 +1,15 @@
-﻿using UsoPagamentoRenovacao.Core.DomainModels.Models;
+﻿using MediatR;
+using UsoPagamentoRenovacao.Core.DomainModels.Models;
 using UsoPagamentoRenovacao.Core.DomainServices.Interfaces.Gateways;
-using UsoPagamentoRenovacao.Core.DomainServices.Interfaces.Handlers;
 using UsoPagamentoRenovacao.Core.DomainServices.Interfaces.Repositories;
 using UsoPagamentoRenovacao.Core.Handlers.Commands;
 using UsoPagamentoRenovacao.Core.Handlers.Events;
 
 namespace UsoPagamentoRenovacao.Core.Handlers
 {
-    public class PagamentoHandler : IRequestHandler<SolicitarPagamentoCommand>,
-                                    IRequestHandler<PagamentoEfetuadoEvent>,
-                                    IRequestHandler<PagamentoNaoEfetuadoEvent>
+    public class PagamentoHandler : IRequestHandler<SolicitarPagamentoCommand,bool>,
+                                    INotificationHandler<PagamentoEfetuadoEvent>,
+                                    INotificationHandler<PagamentoNaoEfetuadoEvent>
     {
         private readonly IThorPagamentosGateway _thorPagamentosGateway;
         private readonly ITransacaoRepository _transacaoRepository;
@@ -24,7 +24,7 @@ namespace UsoPagamentoRenovacao.Core.Handlers
             _eventoRepository = eventoRepository;
         }
 
-        public async Task Handle(SolicitarPagamentoCommand message)
+        public async Task<bool> Handle(SolicitarPagamentoCommand message, CancellationToken cancellationToken)
         {
             //Solilicitar pagamento ao Thor Pagamentos
             var idTransacao = await _thorPagamentosGateway.SolicitarPagamento();
@@ -42,9 +42,10 @@ namespace UsoPagamentoRenovacao.Core.Handlers
             {
                 //Publicar evento na fila contrato-nao-prorrogado (falha no pagamento)
             }
+            return true;
         }
 
-        public async Task Handle(PagamentoEfetuadoEvent message)
+        public async Task Handle(PagamentoEfetuadoEvent message, CancellationToken cancellationToken)
         {
 
             //Atualizar transacao Capturada
@@ -58,7 +59,7 @@ namespace UsoPagamentoRenovacao.Core.Handlers
 
         }
 
-        public async Task Handle(PagamentoNaoEfetuadoEvent message)
+        public async Task Handle(PagamentoNaoEfetuadoEvent message, CancellationToken cancellationToken)
         {
             //Atualizar transacao Negada
             var transacao = await _transacaoRepository.ObterPorId(Guid.NewGuid());
