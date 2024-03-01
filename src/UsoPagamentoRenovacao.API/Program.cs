@@ -1,3 +1,4 @@
+using MassTransit;
 using MediatR;
 using UsoPagamentoRenovacao.Core.DomainServices.Interfaces.Gateways;
 using UsoPagamentoRenovacao.Core.DomainServices.Interfaces.Repositories;
@@ -5,6 +6,7 @@ using UsoPagamentoRenovacao.Core.Handlers;
 using UsoPagamentoRenovacao.Core.Handlers.Commands;
 using UsoPagamentoRenovacao.Core.Handlers.Events;
 using UsoPagamentoRenovacao.Infrastructure.Gateways;
+using UsoPagamentoRenovacao.Infrastructure.RabbitMq.Consumers;
 using UsoPagamentoRenovacao.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,9 +39,30 @@ builder.Services.AddScoped<IRequestHandler<SolicitarPagamentoCommand, bool>, Pag
 builder.Services.AddScoped<INotificationHandler<PagamentoEfetuadoEvent>, PagamentoHandler>();
 builder.Services.AddScoped<INotificationHandler<PagamentoNaoEfetuadoEvent>, PagamentoHandler>();
 
+
+builder.Services.AddMassTransit(bus =>
+{
+    //bus.AddConsumer<ProrrogarContratoConsumer>();
+    
+    bus.UsingRabbitMq((ctx, cfg) =>
+    {
+        cfg.Host(builder.Configuration.GetConnectionString("RabbitMq"));
+        cfg.ConfigureEndpoints(ctx);
+
+        cfg.ReceiveEndpoint("queue-prorrogar-contrato", e =>
+        {
+            e.PrefetchCount = 10;
+            e.UseMessageRetry(p => p.Interval(3, 100));
+            e.Consumer<ProrrogarContratoConsumer>();
+        });
+    });
+
+
+});
+builder.Services.AddMassTransitHostedService();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using MassTransit;
+using MediatR;
 using UsoPagamentoRenovacao.Core.DomainModels.Models;
 using UsoPagamentoRenovacao.Core.DomainServices.Interfaces.Gateways;
 using UsoPagamentoRenovacao.Core.DomainServices.Interfaces.Repositories;
@@ -19,15 +20,21 @@ namespace UsoPagamentoRenovacao.Core.Handlers
         private readonly IEventoRepository _eventoRepository;
         private readonly IMediatorHandler _mediatorHandler;
 
-        public ProrrogacaoHandler(IProrrogacaoRepository prorrogacaoRepository, 
-            IContratosGateway contratosGateway, 
-            IEventoRepository eventoRepository, 
-            IMediatorHandler mediatorHandler)
+        private readonly IPublishEndpoint _publisher;
+        private readonly ISendEndpoint _sendEndpoint;
+        private readonly IBus _bus;
+
+        public ProrrogacaoHandler(IProrrogacaoRepository prorrogacaoRepository,
+            IContratosGateway contratosGateway,
+            IEventoRepository eventoRepository,
+            IMediatorHandler mediatorHandler,
+            IPublishEndpoint publisher)
         {
             _prorrogacaoRepository = prorrogacaoRepository;
             _contratosGateway = contratosGateway;
             _eventoRepository = eventoRepository;
             _mediatorHandler = mediatorHandler;
+            _publisher = publisher;
         }
 
         public async Task<bool> Handle(SolicitarProrrogacaoCommand message, CancellationToken cancellationToken)
@@ -35,7 +42,7 @@ namespace UsoPagamentoRenovacao.Core.Handlers
             //Gravar prorrogacao na tabela prorrogacoes
             await _prorrogacaoRepository.Adicionar(new Prorrogacao());
 
-            var realizarPagamento = true;
+            var realizarPagamento = false;
 
             if (realizarPagamento)
             {
@@ -45,6 +52,8 @@ namespace UsoPagamentoRenovacao.Core.Handlers
             else
             {
                 //Publicar comando na fila prorrogar-contrato (ProrrogarContratoCommand)
+
+                await _publisher.Publish(message);
             }
             return true;
         }
